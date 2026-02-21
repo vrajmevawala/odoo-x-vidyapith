@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
-import { SearchInput, SelectFilter } from '../components/ui/Filters';
 import Pagination from '../components/ui/Pagination';
 import { SkeletonTable } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -14,18 +13,24 @@ import { maintenanceAPI } from '../api/maintenance';
 import { vehiclesAPI } from '../api/vehicles';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
+import { Toolbar } from '../components/ui/Filters';
 
 const TYPE_OPTIONS = [
-  { value: '', label: 'All Types' },
   { value: 'Preventive', label: 'Preventive' },
   { value: 'Corrective', label: 'Corrective' },
   { value: 'Inspection', label: 'Inspection' },
 ];
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All' },
   { value: 'false', label: 'Pending' },
   { value: 'true', label: 'Completed' },
+];
+
+const SORT_OPTIONS = [
+  { value: '-date', label: 'Newest First' },
+  { value: 'date', label: 'Oldest First' },
+  { value: '-cost', label: 'Cost (High–Low)' },
+  { value: 'cost', label: 'Cost (Low–High)' },
 ];
 
 const EMPTY_FORM = { vehicle: '', type: 'Preventive', cost: '', date: '', notes: '' };
@@ -41,6 +46,8 @@ export default function MaintenancePage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [vehicles, setVehicles] = useState([]);
+  const [maintSearch, setMaintSearch] = useState('');
+  const [sortBy, setSortBy] = useState('');
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -48,6 +55,8 @@ export default function MaintenancePage() {
       const params = { page, limit: 10 };
       if (typeFilter) params.type = typeFilter;
       if (statusFilter) params.isCompleted = statusFilter;
+      if (sortBy) params.sort = sortBy;
+      if (maintSearch) params.search = maintSearch;
       const res = await maintenanceAPI.getAll(params);
       setLogs(res.data.data || []);
       setPagination(res.data.pagination || {});
@@ -56,10 +65,10 @@ export default function MaintenancePage() {
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, statusFilter]);
+  }, [page, typeFilter, statusFilter, sortBy, maintSearch]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
-  useEffect(() => { setPage(1); }, [typeFilter, statusFilter]);
+  useEffect(() => { setPage(1); }, [typeFilter, statusFilter, sortBy, maintSearch]);
 
   const openCreate = async () => {
     setForm(EMPTY_FORM);
@@ -108,10 +117,21 @@ export default function MaintenancePage() {
         </button>
       </PageHeader>
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <SelectFilter value={typeFilter} onChange={setTypeFilter} options={TYPE_OPTIONS} />
-        <SelectFilter value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
-      </div>
+      {/* Toolbar */}
+      <Toolbar
+        search={maintSearch}
+        onSearchChange={setMaintSearch}
+        searchPlaceholder="Search maintenance..."
+        filterOptions={STATUS_OPTIONS}
+        filterValue={statusFilter}
+        onFilterChange={setStatusFilter}
+        groupOptions={TYPE_OPTIONS}
+        groupValue={typeFilter}
+        onGroupChange={setTypeFilter}
+        sortOptions={SORT_OPTIONS}
+        sortValue={sortBy}
+        onSortChange={setSortBy}
+      />
 
       {loading ? (
         <SkeletonTable rows={6} cols={5} />

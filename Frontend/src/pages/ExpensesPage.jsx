@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus, Fuel, Receipt, Truck,
-  IndianRupee,
+  IndianRupee,ReceiptIndianRupee,
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
-import { SelectFilter } from '../components/ui/Filters';
+import { Toolbar } from '../components/ui/Filters';
 import Pagination from '../components/ui/Pagination';
 import { SkeletonTable } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -17,10 +17,16 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
 const TYPE_OPTIONS = [
-  { value: '', label: 'All Types' },
   { value: 'Fuel', label: 'Fuel' },
   { value: 'Toll', label: 'Toll' },
   { value: 'Misc', label: 'Miscellaneous' },
+];
+
+const SORT_OPTIONS = [
+  { value: '-date', label: 'Newest First' },
+  { value: 'date', label: 'Oldest First' },
+  { value: '-cost', label: 'Cost (High–Low)' },
+  { value: 'cost', label: 'Cost (Low–High)' },
 ];
 
 const EMPTY_FORM = { vehicle: '', type: 'Fuel', cost: '', liters: '', date: '' };
@@ -35,20 +41,24 @@ export default function ExpensesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [vehicles, setVehicles] = useState([]);
+  const [expSearch, setExpSearch] = useState('');
+  const [sortBy, setSortBy] = useState('');
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, limit: 10 };
       if (typeFilter) params.type = typeFilter;
+      if (sortBy) params.sort = sortBy;
+      if (expSearch) params.search = expSearch;
       const res = await expensesAPI.getAll(params);
       setExpenses(res.data.data || []);
       setPagination(res.data.pagination || {});
     } catch { /* handled */ } finally { setLoading(false); }
-  }, [page, typeFilter]);
+  }, [page, typeFilter, sortBy, expSearch]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
-  useEffect(() => { setPage(1); }, [typeFilter]);
+  useEffect(() => { setPage(1); }, [typeFilter, sortBy, expSearch]);
 
   // Summary KPIs
   const totalCost = expenses.reduce((s, e) => s + (e.cost || 0), 0);
@@ -84,7 +94,7 @@ export default function ExpensesPage() {
 
   const typeIcon = (type) => {
     if (type === 'Fuel') return <Fuel size={14} className="text-brand-500" />;
-    if (type === 'Toll') return <Receipt size={14} className="text-surface-500" />;
+    if (type === 'Toll') return <ReceiptIndianRupee size={14} className="text-surface-500" />;
     return <IndianRupee size={14} className="text-surface-400" />;
   };
 
@@ -106,13 +116,22 @@ export default function ExpensesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPICard label="Page Total" value={totalCost} prefix="₹" icon={IndianRupee} color="text-surface-700" bg="bg-surface-100" />
         <KPICard label="Fuel Cost" value={fuelCost} prefix="₹" icon={Fuel} color="text-brand-600" bg="bg-brand-50" />
-        <KPICard label="Toll Cost" value={tollCost} prefix="₹" icon={Receipt} color="text-surface-600" bg="bg-surface-100" />
+        <KPICard label="Toll Cost" value={tollCost} prefix="₹" icon={ReceiptIndianRupee} color="text-surface-600" bg="bg-surface-100" />
         <KPICard label="Fuel (Liters)" value={totalLiters} suffix="L" icon={Fuel} color="text-emerald-600" bg="bg-emerald-50" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <SelectFilter value={typeFilter} onChange={setTypeFilter} options={TYPE_OPTIONS} />
-      </div>
+      {/* Toolbar */}
+      <Toolbar
+        search={expSearch}
+        onSearchChange={setExpSearch}
+        searchPlaceholder="Search expenses..."
+        filterOptions={TYPE_OPTIONS}
+        filterValue={typeFilter}
+        onFilterChange={setTypeFilter}
+        sortOptions={SORT_OPTIONS}
+        sortValue={sortBy}
+        onSortChange={setSortBy}
+      />
 
       {loading ? (
         <SkeletonTable rows={6} cols={5} />

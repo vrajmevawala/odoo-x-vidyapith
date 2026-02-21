@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -9,7 +9,7 @@ import {
 import KPICard from '../components/ui/KPICard';
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
-import { SelectFilter } from '../components/ui/Filters';
+import { Toolbar } from '../components/ui/Filters';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import { analyticsAPI } from '../api/analytics';
 import { tripsAPI } from '../api/trips';
@@ -19,7 +19,7 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 const containerV = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.07 } } };
 const itemV = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 
-const TIME_RANGE_OPTIONS = [
+const TIME_SORT_OPTIONS = [
   { value: '7d', label: 'Last 7 Days' },
   { value: '30d', label: 'Last 30 Days' },
   { value: '90d', label: 'Last 90 Days' },
@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30d');
   const [tripStatusFilter, setTripStatusFilter] = useState('');
+  const [dashSearch, setDashSearch] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -78,6 +79,17 @@ export default function DashboardPage() {
     };
     load();
   }, [timeRange, tripStatusFilter]);
+
+  const filteredTrips = useMemo(() => {
+    if (!dashSearch) return recentTrips;
+    const q = dashSearch.toLowerCase();
+    return recentTrips.filter((t) =>
+      (t.origin || '').toLowerCase().includes(q) ||
+      (t.destination || '').toLowerCase().includes(q) ||
+      (t.vehicle?.name || '').toLowerCase().includes(q) ||
+      (t.driver?.name || '').toLowerCase().includes(q)
+    );
+  }, [recentTrips, dashSearch]);
 
   if (loading) {
     return (
@@ -130,7 +142,6 @@ export default function DashboardPage() {
     <div>
       <PageHeader title="Dashboard" subtitle="Fleet overview at a glance">
         <div className="flex items-center gap-2">
-          <SelectFilter value={timeRange} onChange={setTimeRange} options={TIME_RANGE_OPTIONS} />
           <button
             onClick={() => navigate('/trips?action=create')}
             className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors"
@@ -145,6 +156,8 @@ export default function DashboardPage() {
           </button>
         </div>
       </PageHeader>
+
+      
 
       {/* KPI Row */}
       <motion.div
@@ -339,6 +352,19 @@ export default function DashboardPage() {
         </motion.div>
       </motion.div>
 
+      {/* Toolbar */}
+      <Toolbar
+        search={dashSearch}
+        onSearchChange={setDashSearch}
+        searchPlaceholder="Search dashboard..."
+        filterOptions={TRIP_STATUS_FILTER}
+        filterValue={tripStatusFilter}
+        onFilterChange={setTripStatusFilter}
+        sortOptions={TIME_SORT_OPTIONS}
+        sortValue={timeRange}
+        onSortChange={setTimeRange}
+      />
+
       {/* Recent Trips Table */}
       <motion.div
         className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden"
@@ -348,14 +374,11 @@ export default function DashboardPage() {
       >
         <div className="px-6 py-4 border-b border-surface-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-surface-900">Recent Trips</h3>
-          <div className="flex items-center gap-2">
-            <SelectFilter value={tripStatusFilter} onChange={setTripStatusFilter} options={TRIP_STATUS_FILTER} />
-            <button onClick={() => navigate('/trips')} className="text-xs font-medium text-brand-600 hover:text-brand-700 flex items-center gap-1">
-              View All <ChevronRight size={13} />
-            </button>
-          </div>
+          <button onClick={() => navigate('/trips')} className="text-xs font-medium text-brand-600 hover:text-brand-700 flex items-center gap-1">
+            View All <ChevronRight size={13} />
+          </button>
         </div>
-        {recentTrips.length === 0 ? (
+        {filteredTrips.length === 0 ? (
           <div className="px-6 py-10 text-center text-sm text-surface-400">No trips found</div>
         ) : (
           <div className="overflow-x-auto">
@@ -370,7 +393,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recentTrips.map((trip, i) => {
+                {filteredTrips.map((trip, i) => {
                   const statusColor = {
                     Draft: 'bg-surface-100 text-surface-600',
                     Dispatched: 'bg-brand-50 text-brand-700',

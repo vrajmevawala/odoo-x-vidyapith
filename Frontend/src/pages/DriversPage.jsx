@@ -6,7 +6,7 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
 import Pagination from '../components/ui/Pagination';
-import { SearchInput, SelectFilter } from '../components/ui/Filters';
+import { Toolbar } from '../components/ui/Filters';
 import { SkeletonTable } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
@@ -15,11 +15,25 @@ import { formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All Statuses' },
   { value: 'Available', label: 'Available' },
   { value: 'On Trip', label: 'On Trip' },
   { value: 'Off Duty', label: 'Off Duty' },
   { value: 'Suspended', label: 'Suspended' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Name (A–Z)' },
+  { value: '-name', label: 'Name (Z–A)' },
+  { value: '-safetyScore', label: 'Safety (High–Low)' },
+  { value: 'safetyScore', label: 'Safety (Low–High)' },
+];
+
+const PERFORMANCE_FILTER_OPTIONS = [
+  { value: 'Excellent', label: 'Excellent' },
+  { value: 'Good', label: 'Good' },
+  { value: 'Average', label: 'Average' },
+  { value: 'Below Average', label: 'Below Average' },
+  { value: 'Poor', label: 'Poor' },
 ];
 
 const PERFORMANCE_OPTIONS = [
@@ -41,6 +55,8 @@ export default function DriversPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [perfFilter, setPerfFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -53,6 +69,8 @@ export default function DriversPage() {
       const params = { page, limit: 10 };
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (perfFilter) params.performance = perfFilter;
+      if (sortBy) params.sort = sortBy;
       const res = await driversAPI.getAll(params);
       const data = res.data?.data ?? res.data ?? [];
       setDrivers(Array.isArray(data) ? data : []);
@@ -63,10 +81,10 @@ export default function DriversPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, perfFilter, sortBy]);
 
   useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
+  useEffect(() => { setPage(1); }, [search, statusFilter, perfFilter, sortBy]);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setModalOpen(true); };
   const openEdit = (d) => {
@@ -160,10 +178,21 @@ export default function DriversPage() {
         </button>
       </PageHeader>
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search drivers..." />
-        <SelectFilter value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
-      </div>
+      {/* Toolbar */}
+      <Toolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search drivers..."
+        filterOptions={STATUS_OPTIONS}
+        filterValue={statusFilter}
+        onFilterChange={setStatusFilter}
+        groupOptions={PERFORMANCE_FILTER_OPTIONS}
+        groupValue={perfFilter}
+        onGroupChange={setPerfFilter}
+        sortOptions={SORT_OPTIONS}
+        sortValue={sortBy}
+        onSortChange={setSortBy}
+      />
 
       {loading ? (
         <SkeletonTable rows={6} cols={7} />

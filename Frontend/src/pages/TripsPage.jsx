@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Send, CheckCircle2, XCircle, FileText,
@@ -8,6 +8,7 @@ import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import { Toolbar } from '../components/ui/Filters';
 import { tripsAPI } from '../api/trips';
 import { vehiclesAPI } from '../api/vehicles';
 import { driversAPI } from '../api/drivers';
@@ -25,6 +26,20 @@ const EMPTY_FORM = {
   vehicle: '', driver: '', origin: '', destination: '', distanceKm: '', cargoWeight: '', revenue: '',
 };
 
+const STATUS_FILTER_OPTIONS = [
+  { value: 'Draft', label: 'Draft' },
+  { value: 'Dispatched', label: 'Dispatched' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'Cancelled', label: 'Cancelled' },
+];
+
+const SORT_OPTIONS = [
+  { value: '-createdAt', label: 'Newest First' },
+  { value: 'createdAt', label: 'Oldest First' },
+  { value: '-revenue', label: 'Revenue (High)' },
+  { value: 'revenue', label: 'Revenue (Low)' },
+];
+
 export default function TripsPage() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +48,9 @@ export default function TripsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [tripSearch, setTripSearch] = useState('');
+  const [tripStatusFilter, setTripStatusFilter] = useState('');
+  const [tripSort, setTripSort] = useState('');
 
   const fetchTrips = useCallback(async () => {
     setLoading(true);
@@ -120,8 +138,35 @@ export default function TripsPage() {
 
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const filteredTrips = useMemo(() => {
+    let result = trips;
+    if (tripStatusFilter) {
+      result = result.filter((t) => t.status === tripStatusFilter);
+    }
+    if (tripSearch) {
+      const q = tripSearch.toLowerCase();
+      result = result.filter((t) =>
+        (t.origin || '').toLowerCase().includes(q) ||
+        (t.destination || '').toLowerCase().includes(q) ||
+        (t.vehicle?.name || '').toLowerCase().includes(q) ||
+        (t.driver?.name || '').toLowerCase().includes(q)
+      );
+    }
+    if (tripSort) {
+      const desc = tripSort.startsWith('-');
+      const key = desc ? tripSort.slice(1) : tripSort;
+      result = [...result].sort((a, b) => {
+        const av = a[key] ?? '';
+        const bv = b[key] ?? '';
+        if (typeof av === 'number') return desc ? bv - av : av - bv;
+        return desc ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv));
+      });
+    }
+    return result;
+  }, [trips, tripSearch, tripStatusFilter, tripSort]);
+
   const groupedTrips = COLUMNS.reduce((acc, col) => {
-    acc[col.key] = trips.filter((t) => t.status === col.key);
+    acc[col.key] = filteredTrips.filter((t) => t.status === col.key);
     return acc;
   }, {});
 
@@ -132,6 +177,19 @@ export default function TripsPage() {
           <Plus size={16} /> New Trip
         </button>
       </PageHeader>
+
+      {/* Toolbar */}
+      <Toolbar
+        search={tripSearch}
+        onSearchChange={setTripSearch}
+        searchPlaceholder="Search trips..."
+        filterOptions={STATUS_FILTER_OPTIONS}
+        filterValue={tripStatusFilter}
+        onFilterChange={setTripStatusFilter}
+        sortOptions={SORT_OPTIONS}
+        sortValue={tripSort}
+        onSortChange={setTripSort}
+      />
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

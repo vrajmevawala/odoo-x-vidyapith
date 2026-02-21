@@ -7,7 +7,7 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
 import Pagination from '../components/ui/Pagination';
-import { SearchInput, SelectFilter } from '../components/ui/Filters';
+import { Toolbar } from '../components/ui/Filters';
 import { SkeletonTable } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
@@ -17,7 +17,6 @@ import { formatCurrency, formatNumber } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All Statuses' },
   { value: 'Available', label: 'Available' },
   { value: 'On Trip', label: 'On Trip' },
   { value: 'In Shop', label: 'In Shop' },
@@ -26,7 +25,6 @@ const STATUS_OPTIONS = [
 ];
 
 const VEHICLE_TYPE_OPTIONS = [
-  { value: '', label: 'All Types' },
   { value: 'Truck', label: 'Truck' },
   { value: 'Van', label: 'Van' },
   { value: 'Trailer', label: 'Trailer' },
@@ -35,6 +33,15 @@ const VEHICLE_TYPE_OPTIONS = [
   { value: 'Tanker', label: 'Tanker' },
   { value: 'Flatbed', label: 'Flatbed' },
   { value: 'Refrigerated', label: 'Refrigerated' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Name (A–Z)' },
+  { value: '-name', label: 'Name (Z–A)' },
+  { value: '-acquisitionCost', label: 'Cost (High–Low)' },
+  { value: 'acquisitionCost', label: 'Cost (Low–High)' },
+  { value: '-odometer', label: 'Odometer (High)' },
+  { value: 'odometer', label: 'Odometer (Low)' },
 ];
 
 const FORM_VEHICLE_TYPES = [
@@ -74,6 +81,7 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [sortBy, setSortBy] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -88,6 +96,7 @@ export default function VehiclesPage() {
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       if (typeFilter) params.vehicleType = typeFilter;
+      if (sortBy) params.sort = sortBy;
       const res = await vehiclesAPI.getAll(params);
       setVehicles(res.data.data || []);
       setPagination(res.data.pagination || {});
@@ -97,10 +106,10 @@ export default function VehiclesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, typeFilter]);
+  }, [page, search, statusFilter, typeFilter, sortBy]);
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
-  useEffect(() => { setPage(1); }, [search, statusFilter, typeFilter]);
+  useEffect(() => { setPage(1); }, [search, statusFilter, typeFilter, sortBy]);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setModalOpen(true); };
   const openEdit = (v) => {
@@ -176,12 +185,21 @@ export default function VehiclesPage() {
         </button>
       </PageHeader>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search vehicles..." />
-        <SelectFilter value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
-        <SelectFilter value={typeFilter} onChange={setTypeFilter} options={VEHICLE_TYPE_OPTIONS} />
-      </div>
+      {/* Toolbar */}
+      <Toolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search vehicles..."
+        filterOptions={STATUS_OPTIONS}
+        filterValue={statusFilter}
+        onFilterChange={setStatusFilter}
+        groupOptions={VEHICLE_TYPE_OPTIONS}
+        groupValue={typeFilter}
+        onGroupChange={setTypeFilter}
+        sortOptions={SORT_OPTIONS}
+        sortValue={sortBy}
+        onSortChange={setSortBy}
+      />
 
       {/* Table */}
       {loading ? (
