@@ -224,7 +224,7 @@ export default function CompliancePage() {
                 ) : (
                   <div className="space-y-0.5">
                     {items.map((item, i) => (
-                      <div key={item._id || i}>{section.renderItem(item)}</div>
+                      <div key={item.id || i}>{section.renderItem(item)}</div>
                     ))}
                   </div>
                 )}

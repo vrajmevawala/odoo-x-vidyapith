@@ -1,1 +1,0 @@
-import{b as r}from"./index-BgoAkrL-.js";const a={getAll:e=>r.get("/drivers",{params:e}),getOne:e=>r.get(`/drivers/${e}`),create:e=>r.post("/drivers",e),update:(e,t)=>r.put(`/drivers/${e}`,t),updateStatus:(e,t)=>r.patch(`/drivers/${e}/status`,t),getPerformance:e=>r.get(`/drivers/${e}/performance`)};export{a as d};

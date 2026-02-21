@@ -37,11 +37,11 @@ export const cn = (...classes) => classes.filter(Boolean).join(' ');
 
 export const statusColors = {
   Available: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'On Trip': 'bg-amber-50 text-amber-700 border-amber-200',
-  'In Shop': 'bg-orange-50 text-orange-700 border-orange-200',
+  'OnTrip': 'bg-amber-50 text-amber-700 border-amber-200',
+  'InShop': 'bg-orange-50 text-orange-700 border-orange-200',
   Retired: 'bg-surface-100 text-surface-500 border-surface-200',
-  'Out of Service': 'bg-red-50 text-red-700 border-red-200',
-  'Off Duty': 'bg-surface-100 text-surface-500 border-surface-200',
+  'OutOfService': 'bg-red-50 text-red-700 border-red-200',
+  'OffDuty': 'bg-surface-100 text-surface-500 border-surface-200',
   Suspended: 'bg-red-50 text-red-700 border-red-200',
   Draft: 'bg-surface-100 text-surface-600 border-surface-200',
   Dispatched: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -50,3 +50,17 @@ export const statusColors = {
 };
 
 export const getStatusColor = (status) => statusColors[status] || 'bg-surface-100 text-surface-600 border-surface-200';
+
+/**
+ * Convert Prisma enum status values to human-readable labels.
+ * e.g. "OnTrip" → "On Trip", "InShop" → "In Shop"
+ */
+const STATUS_LABELS = {
+  OnTrip: 'On Trip',
+  InShop: 'In Shop',
+  OutOfService: 'Out of Service',
+  OffDuty: 'Off Duty',
+  BelowAverage: 'Below Average',
+};
+
+export const statusDisplayLabel = (status) => STATUS_LABELS[status] || status;

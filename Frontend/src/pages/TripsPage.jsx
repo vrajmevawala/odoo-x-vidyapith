@@ -14,6 +14,7 @@ import { vehiclesAPI } from '../api/vehicles';
 import { driversAPI } from '../api/drivers';
 import { formatCurrency } from '../utils/helpers';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const COLUMNS = [
   { key: 'Draft', label: 'Draft', icon: FileText, color: 'bg-surface-400', lightBg: 'bg-surface-50' },
@@ -41,6 +42,9 @@ const SORT_OPTIONS = [
 ];
 
 export default function TripsPage() {
+  const { hasRole } = useAuth();
+  const canManageTrips = hasRole('dispatcher');
+
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -173,9 +177,11 @@ export default function TripsPage() {
   return (
     <div>
       <PageHeader title="Trips" subtitle="Kanban board — drag-free workflow">
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
-          <Plus size={16} /> New Trip
-        </button>
+        {canManageTrips && (
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
+            <Plus size={16} /> New Trip
+          </button>
+        )}
       </PageHeader>
 
       {/* Toolbar */}
@@ -267,29 +273,31 @@ export default function TripsPage() {
                             </div>
                           </div>
 
-                          {/* Actions */}
-                          <div className="flex gap-2">
-                            {trip.status === 'Draft' && (
-                              <>
-                                <button onClick={() => handleDispatch(trip)} className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors">
-                                  Dispatch
-                                </button>
-                                <button onClick={() => handleCancel(trip)} className="text-xs font-semibold py-1.5 px-3 rounded-lg bg-surface-50 text-surface-500 hover:bg-surface-100 transition-colors">
-                                  Cancel
-                                </button>
-                              </>
-                            )}
-                            {trip.status === 'Dispatched' && (
-                              <>
-                                <button onClick={() => handleComplete(trip)} className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
-                                  Complete
-                                </button>
-                                <button onClick={() => handleCancel(trip)} className="text-xs font-semibold py-1.5 px-3 rounded-lg bg-surface-50 text-surface-500 hover:bg-surface-100 transition-colors">
-                                  Cancel
-                                </button>
-                              </>
-                            )}
-                          </div>
+                          {/* Actions - only for dispatcher */}
+                          {canManageTrips && (
+                            <div className="flex gap-2">
+                              {trip.status === 'Draft' && (
+                                <>
+                                  <button onClick={() => handleDispatch(trip)} className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors">
+                                    Dispatch
+                                  </button>
+                                  <button onClick={() => handleCancel(trip)} className="text-xs font-semibold py-1.5 px-3 rounded-lg bg-surface-50 text-surface-500 hover:bg-surface-100 transition-colors">
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                              {trip.status === 'Dispatched' && (
+                                <>
+                                  <button onClick={() => handleComplete(trip)} className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
+                                    Complete
+                                  </button>
+                                  <button onClick={() => handleCancel(trip)} className="text-xs font-semibold py-1.5 px-3 rounded-lg bg-surface-50 text-surface-500 hover:bg-surface-100 transition-colors">
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </motion.div>
                       ))
                     )}

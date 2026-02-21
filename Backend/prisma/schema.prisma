@@ -1,0 +1,190 @@
+// ─────────────────────────────────────────────────────────
+//  FleetFlow – PostgreSQL Schema (Prisma)
+//  Normalized relational design with proper FK, indexes,
+//  enums and cascading rules.
+// ─────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────── ENUMS ──────────────────────
+
+enum UserRole {
+  fleet_manager
+  dispatcher
+  safety_officer
+  financial_analyst
+}
+
+enum VehicleStatus {
+  Available
+  OnTrip
+  InShop
+  Retired
+  OutOfService
+}
+
+enum VehicleType {
+  Truck
+  Van
+  Trailer
+  Bus
+  Pickup
+  Tanker
+  Flatbed
+  Refrigerated
+}
+
+enum DriverStatus {
+  Available
+  OnTrip
+  OffDuty
+  Suspended
+}
+
+enum DriverPerformance {
+  Excellent
+  Good
+  Average
+  BelowAverage
+  Poor
+}
+
+enum TripStatus {
+  Draft
+  Dispatched
+  Completed
+  Cancelled
+}
+
+enum ExpenseType {
+  Fuel
+  Toll
+  Misc
+}
+
+// ────────────────────── MODELS ──────────────────────
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(255)
+  password  String
+  role      UserRole @default(dispatcher)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Vehicle {
+  id              String        @id @default(uuid()) @db.Uuid
+  name            String        @db.VarChar(120)
+  model           String?       @db.VarChar(120)
+  vehicleType     VehicleType   @default(Truck) @map("vehicle_type")
+  licensePlate    String        @unique @map("license_plate") @db.VarChar(20)
+  maxLoadCapacity Int           @map("max_load_capacity")
+  odometer        Int           @default(0)
+  acquisitionCost Float         @default(0) @map("acquisition_cost")
+  status          VehicleStatus @default(Available)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  trips           Trip[]
+  expenses        Expense[]
+  maintenanceLogs MaintenanceLog[]
+
+  @@index([status])
+  @@index([vehicleType])
+  @@map("vehicles")
+}
+
+model Driver {
+  id                String            @id @default(uuid()) @db.Uuid
+  name              String            @db.VarChar(100)
+  email             String            @unique @db.VarChar(255)
+  phone             String?           @db.VarChar(30)
+  licenseNumber     String            @map("license_number") @db.VarChar(50)
+  licenseExpiryDate DateTime          @map("license_expiry_date")
+  licenseCategory   String?           @map("license_category") @db.VarChar(30)
+  safetyScore       Int               @default(100) @map("safety_score")
+  performance       DriverPerformance @default(Good)
+  status            DriverStatus      @default(Available)
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  trips             Trip[]
+
+  @@index([status])
+  @@index([licenseExpiryDate])
+  @@map("drivers")
+}
+
+model Trip {
+  id           String     @id @default(uuid()) @db.Uuid
+  vehicleId    String     @map("vehicle_id") @db.Uuid
+  driverId     String     @map("driver_id") @db.Uuid
+  cargoWeight  Int        @map("cargo_weight")
+  origin       String     @db.VarChar(255)
+  destination  String     @db.VarChar(255)
+  distanceKm   Int        @map("distance_km")
+  revenue      Float      @default(0)
+  status       TripStatus @default(Draft)
+  dispatchedAt DateTime?  @map("dispatched_at")
+  completedAt  DateTime?  @map("completed_at")
+  cancelledAt  DateTime?  @map("cancelled_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver  Driver  @relation(fields: [driverId], references: [id], onDelete: Restrict)
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("trips")
+}
+
+model MaintenanceLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  vehicleId   String    @map("vehicle_id") @db.Uuid
+  type        String    @db.VarChar(100)
+  cost        Float
+  date        DateTime  @default(now())
+  notes       String?   @db.VarChar(1000)
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@index([vehicleId])
+  @@index([isCompleted])
+  @@index([date(sort: Desc)])
+  @@map("maintenance_logs")
+}
+
+model Expense {
+  id        String      @id @default(uuid()) @db.Uuid
+  vehicleId String      @map("vehicle_id") @db.Uuid
+  liters    Float?      @default(0)
+  cost      Float
+  date      DateTime    @default(now())
+  type      ExpenseType
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@index([vehicleId])
+  @@index([type])
+  @@index([date(sort: Desc)])
+  @@map("expenses")
+}

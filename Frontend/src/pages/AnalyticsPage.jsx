@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
   const totalMaintCost = maintenance.reduce((s, m) => s + (m.cost || 0), 0);
 
   const activeVehicles = vehicles.filter((v) => v.status !== 'Retired').length;
-  const onTripVehicles = vehicles.filter((v) => v.status === 'On Trip').length;
+  const onTripVehicles = vehicles.filter((v) => v.status === 'OnTrip').length;
   const utilization = activeVehicles > 0 ? Math.round((onTripVehicles / activeVehicles) * 100) : 0;
 
   const fleetROI = financials.totalRevenue > 0
@@ -153,10 +153,10 @@ export default function AnalyticsPage() {
     .filter((v) => v.status !== 'Retired')
     .map((v) => {
       const vExpenses = expenses
-        .filter((e) => e.vehicle?._id === v._id || e.vehicle === v._id)
+        .filter((e) => e.vehicle?.id === v.id || e.vehicle === v.id)
         .reduce((s, e) => s + (e.cost || 0), 0);
       const vMaint = maintenance
-        .filter((m) => m.vehicle?._id === v._id || m.vehicle === v._id)
+        .filter((m) => m.vehicle?.id === v.id || m.vehicle === v.id)
         .reduce((s, m) => s + (m.cost || 0), 0);
       return { plate: v.licensePlate || v.name, cost: vExpenses + vMaint };
     })
@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
     if (e.type === 'Fuel') monthlyFinancials[key].fuel += e.cost || 0;
   });
   maintenance.forEach((m) => {
-    const date = new Date(m.scheduledDate || m.date);
+    const date = new Date(m.date);
     const key = date.toLocaleString('en-IN', { month: 'short', year: 'numeric' });
     if (!monthlyFinancials[key]) monthlyFinancials[key] = { revenue: 0, fuel: 0, maintenance: 0 };
     monthlyFinancials[key].maintenance += m.cost || 0;

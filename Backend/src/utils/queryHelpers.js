@@ -1,57 +1,65 @@
 const { PAGINATION } = require('../config/constants');
 
 /**
- * Build pagination, filtering, and sorting from query params.
+ * Build Prisma query options from Express req.query.
  *
- * @param {object} query - Express req.query
- * @param {string[]} allowedFilters - Fields that can be filtered on
- * @returns {{ filter, sort, skip, limit, page }}
+ * @param {object} query      – req.query
+ * @param {string[]} allowedFilters – field names that may be filtered
+ * @returns {{ where, orderBy, skip, take, page }}
  */
 const buildQueryOptions = (query, allowedFilters = []) => {
   // Pagination
   let page = parseInt(query.page, 10) || PAGINATION.DEFAULT_PAGE;
-  let limit = parseInt(query.limit, 10) || PAGINATION.DEFAULT_LIMIT;
+  let take = parseInt(query.limit, 10) || PAGINATION.DEFAULT_LIMIT;
   if (page < 1) page = 1;
-  if (limit < 1) limit = 1;
-  if (limit > PAGINATION.MAX_LIMIT) limit = PAGINATION.MAX_LIMIT;
-  const skip = (page - 1) * limit;
+  if (take < 1) take = 1;
+  if (take > PAGINATION.MAX_LIMIT) take = PAGINATION.MAX_LIMIT;
+  const skip = (page - 1) * take;
 
   // Sorting  e.g. ?sort=-createdAt,name
-  let sort = {};
+  let orderBy = [];
   if (query.sort) {
     const parts = query.sort.split(',');
     parts.forEach((part) => {
-      const direction = part.startsWith('-') ? -1 : 1;
+      const desc = part.startsWith('-');
       const field = part.replace(/^-/, '');
-      sort[field] = direction;
+      orderBy.push({ [field]: desc ? 'desc' : 'asc' });
     });
   } else {
-    sort = { createdAt: -1 };
+    orderBy = [{ createdAt: 'desc' }];
   }
 
-  // Filtering  e.g. ?status=Available&type=Fuel
-  const filter = {};
+  // Filtering
+  const where = {};
   allowedFilters.forEach((key) => {
     if (query[key] !== undefined && query[key] !== '') {
-      filter[key] = query[key];
+      // Boolean coercion for isCompleted
+      if (query[key] === 'true') {
+        where[key] = true;
+      } else if (query[key] === 'false') {
+        where[key] = false;
+      } else {
+        where[key] = query[key];
+      }
     }
   });
 
-  // Search support  e.g. ?search=toyota
+  // Full-text search across allowed string fields
   if (query.search) {
-    filter.$or = allowedFilters
+    const searchTerm = query.search;
+    where.OR = allowedFilters
       .filter((f) => typeof f === 'string')
       .map((field) => ({
-        [field]: { $regex: query.search, $options: 'i' },
+        [field]: { contains: searchTerm, mode: 'insensitive' },
       }));
-    if (filter.$or.length === 0) delete filter.$or;
+    if (where.OR.length === 0) delete where.OR;
   }
 
-  return { filter, sort, skip, limit, page };
+  return { where, orderBy, skip, take, page };
 };
 
 /**
- * Build pagination metadata for responses.
+ * Build pagination metadata.
  */
 const paginationMeta = (total, page, limit) => ({
   total,

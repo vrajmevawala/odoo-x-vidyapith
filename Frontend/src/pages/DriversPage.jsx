@@ -13,6 +13,7 @@ import Modal from '../components/ui/Modal';
 import { driversAPI } from '../api/drivers';
 import { formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTIONS = [
   { value: 'Available', label: 'Available' },
@@ -49,6 +50,11 @@ const EMPTY_FORM = {
 };
 
 export default function DriversPage() {
+  const { hasRole } = useAuth();
+  const canManage = hasRole('fleet_manager');
+  const canChangeStatus = hasRole('fleet_manager', 'safety_officer');
+  const showActions = canManage || canChangeStatus;
+
   const [drivers, setDrivers] = useState([]);
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
@@ -173,9 +179,11 @@ export default function DriversPage() {
   return (
     <div>
       <PageHeader title="Drivers" subtitle="Manage driver roster and compliance">
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
-          <Plus size={16} /> Add Driver
-        </button>
+        {canManage && (
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
+            <Plus size={16} /> Add Driver
+          </button>
+        )}
       </PageHeader>
 
       {/* Toolbar */}
@@ -197,7 +205,7 @@ export default function DriversPage() {
       {loading ? (
         <SkeletonTable rows={6} cols={7} />
       ) : drivers.length === 0 ? (
-        <EmptyState title="No drivers found" message="Add your first driver to get started" actionLabel="Add Driver" onAction={openCreate} />
+        <EmptyState title="No drivers found" message="Add your first driver to get started" actionLabel={canManage ? "Add Driver" : undefined} onAction={canManage ? openCreate : undefined} />
       ) : (
         <motion.div className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <div className="overflow-x-auto">
@@ -210,7 +218,7 @@ export default function DriversPage() {
                   <th className="px-6 py-3.5 font-medium">Status</th>
                   <th className="px-6 py-3.5 font-medium text-center">Safety</th>
                   <th className="px-6 py-3.5 font-medium text-center">Performance</th>
-                  <th className="px-6 py-3.5 font-medium w-12"></th>
+                  {showActions && <th className="px-6 py-3.5 font-medium w-12"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -258,35 +266,39 @@ export default function DriversPage() {
                         {d.performance || '—'}
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 relative">
-                      <button onClick={() => setActionMenu(actionMenu === d._id ? null : d._id)} className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 hover:text-surface-600">
-                        <MoreVertical size={16} />
-                      </button>
-                      <AnimatePresence>
-                        {actionMenu === d._id && (
-                          <motion.div
-                            className="absolute right-6 top-10 z-30 bg-white rounded-xl shadow-elevated border border-surface-100 py-1 w-44"
-                            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                          >
-                            <button onClick={() => openEdit(d)} className="flex items-center gap-2 px-4 py-2 text-sm text-surface-600 hover:bg-surface-50 w-full text-left">
-                              <Edit2 size={14} /> Edit
-                            </button>
-                            {d.status !== 'Suspended' && (
-                              <button onClick={() => handleStatusChange(d, 'Suspended')} className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left">
-                                <Shield size={14} /> Suspend
-                              </button>
-                            )}
-                            {d.status === 'Suspended' && (
-                              <button onClick={() => handleStatusChange(d, 'Available')} className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 w-full text-left">
-                                <Shield size={14} /> Activate
-                              </button>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </td>
+                    {showActions && (
+                      <td className="px-6 py-3.5 relative">
+                        <button onClick={() => setActionMenu(actionMenu === d._id ? null : d._id)} className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 hover:text-surface-600">
+                          <MoreVertical size={16} />
+                        </button>
+                        <AnimatePresence>
+                          {actionMenu === d._id && (
+                            <motion.div
+                              className="absolute right-6 top-10 z-30 bg-white rounded-xl shadow-elevated border border-surface-100 py-1 w-44"
+                              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                            >
+                              {canManage && (
+                                <button onClick={() => openEdit(d)} className="flex items-center gap-2 px-4 py-2 text-sm text-surface-600 hover:bg-surface-50 w-full text-left">
+                                  <Edit2 size={14} /> Edit
+                                </button>
+                              )}
+                              {canChangeStatus && d.status !== 'Suspended' && (
+                                <button onClick={() => handleStatusChange(d, 'Suspended')} className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left">
+                                  <Shield size={14} /> Suspend
+                                </button>
+                              )}
+                              {canChangeStatus && d.status === 'Suspended' && (
+                                <button onClick={() => handleStatusChange(d, 'Available')} className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 w-full text-left">
+                                  <Shield size={14} /> Activate
+                                </button>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </td>
+                    )}
                   </motion.tr>
                 ))}
               </tbody>

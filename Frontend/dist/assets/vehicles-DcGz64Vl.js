@@ -1,1 +1,0 @@
-import{b as t}from"./index-BgoAkrL-.js";const i={getAll:e=>t.get("/vehicles",{params:e}),getOne:e=>t.get(`/vehicles/${e}`),create:e=>t.post("/vehicles",e),update:(e,s)=>t.put(`/vehicles/${e}`,s),remove:e=>t.delete(`/vehicles/${e}`),retire:e=>t.patch(`/vehicles/${e}/retire`),updateStatus:(e,s)=>t.patch(`/vehicles/${e}/status`,s)};export{i as v};

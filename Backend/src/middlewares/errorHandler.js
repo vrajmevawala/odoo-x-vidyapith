@@ -1,27 +1,34 @@
+const { Prisma } = require('@prisma/client');
 const { AppError } = require('../utils/AppError');
 
-/**
- * Centralized error-handling middleware.
- */
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, _next) => {
   let error = { ...err, message: err.message, stack: err.stack };
 
-  // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    error = { message: `Invalid ${err.path}: ${err.value}`, statusCode: 400 };
+  // Prisma – unique constraint violation (P2002)
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+    const fields = err.meta?.target?.join(', ') || 'unknown field';
+    error = { message: `Duplicate value for field: ${fields}`, statusCode: 409 };
   }
 
-  // Mongoose duplicate key
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue).join(', ');
-    error = { message: `Duplicate value for field: ${field}`, statusCode: 409 };
+  // Prisma – record not found (P2025)
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+    error = { message: err.meta?.cause || 'Record not found', statusCode: 404 };
   }
 
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const messages = Object.values(err.errors).map((e) => e.message);
-    error = { message: messages.join('. '), statusCode: 422, errors: messages };
+  // Prisma – foreign key constraint failed (P2003)
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+    error = { message: `Related record not found for field: ${err.meta?.field_name || 'unknown'}`, statusCode: 422 };
+  }
+
+  // Prisma – validation error
+  if (err instanceof Prisma.PrismaClientValidationError) {
+    error = { message: 'Invalid data provided', statusCode: 422 };
+  }
+
+  // Prisma – invalid UUID
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2023') {
+    error = { message: `Invalid ID format: ${err.meta?.message || ''}`, statusCode: 400 };
   }
 
   // JWT errors

@@ -14,6 +14,7 @@ import { vehiclesAPI } from '../api/vehicles';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import { Toolbar } from '../components/ui/Filters';
+import { useAuth } from '../context/AuthContext';
 
 const TYPE_OPTIONS = [
   { value: 'Preventive', label: 'Preventive' },
@@ -36,6 +37,9 @@ const SORT_OPTIONS = [
 const EMPTY_FORM = { vehicle: '', type: 'Preventive', cost: '', date: '', notes: '' };
 
 export default function MaintenancePage() {
+  const { hasRole } = useAuth();
+  const canManage = hasRole('fleet_manager');
+
   const [logs, setLogs] = useState([]);
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
@@ -47,7 +51,16 @@ export default function MaintenancePage() {
   const [submitting, setSubmitting] = useState(false);
   const [vehicles, setVehicles] = useState([]);
   const [maintSearch, setMaintSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(maintSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [maintSearch]);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -56,19 +69,28 @@ export default function MaintenancePage() {
       if (typeFilter) params.type = typeFilter;
       if (statusFilter) params.isCompleted = statusFilter;
       if (sortBy) params.sort = sortBy;
-      if (maintSearch) params.search = maintSearch;
       const res = await maintenanceAPI.getAll(params);
-      setLogs(res.data.data || []);
+      let data = res.data.data || [];
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
+        data = data.filter((log) =>
+          (log.vehicle?.name || '').toLowerCase().includes(q) ||
+          (log.vehicle?.licensePlate || '').toLowerCase().includes(q) ||
+          (log.notes || '').toLowerCase().includes(q) ||
+          (log.type || '').toLowerCase().includes(q)
+        );
+      }
+      setLogs(data);
       setPagination(res.data.pagination || {});
     } catch {
       // handled
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, statusFilter, sortBy, maintSearch]);
+  }, [page, typeFilter, statusFilter, sortBy, debouncedSearch]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
-  useEffect(() => { setPage(1); }, [typeFilter, statusFilter, sortBy, maintSearch]);
+  useEffect(() => { setPage(1); }, [typeFilter, statusFilter, sortBy, debouncedSearch]);
 
   const openCreate = async () => {
     setForm(EMPTY_FORM);
@@ -112,9 +134,11 @@ export default function MaintenancePage() {
   return (
     <div>
       <PageHeader title="Maintenance" subtitle="Track vehicle maintenance and repairs">
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
-          <Plus size={16} /> Log Maintenance
-        </button>
+        {canManage && (
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
+            <Plus size={16} /> Log Maintenance
+          </button>
+        )}
       </PageHeader>
 
       {/* Toolbar */}
@@ -136,7 +160,7 @@ export default function MaintenancePage() {
       {loading ? (
         <SkeletonTable rows={6} cols={5} />
       ) : logs.length === 0 ? (
-        <EmptyState title="No maintenance logs" message="Start tracking your fleet maintenance" actionLabel="Log Maintenance" onAction={openCreate} />
+        <EmptyState title="No maintenance logs" message="Start tracking your fleet maintenance" actionLabel={canManage ? "Log Maintenance" : undefined} onAction={canManage ? openCreate : undefined} />
       ) : (
         <motion.div className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <div className="overflow-x-auto">
@@ -149,7 +173,7 @@ export default function MaintenancePage() {
                   <th className="px-6 py-3.5 font-medium text-right">Cost</th>
                   <th className="px-6 py-3.5 font-medium">Status</th>
                   <th className="px-6 py-3.5 font-medium">Notes</th>
-                  <th className="px-6 py-3.5 font-medium w-28"></th>
+                  {canManage && <th className="px-6 py-3.5 font-medium w-28"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -188,13 +212,15 @@ export default function MaintenancePage() {
                       </div>
                     </td>
                     <td className="px-6 py-3.5 text-surface-500 text-xs max-w-[200px] truncate">{log.notes || '—'}</td>
-                    <td className="px-6 py-3.5">
-                      {!log.isCompleted && (
-                        <button onClick={() => handleComplete(log)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
-                          Complete
-                        </button>
-                      )}
-                    </td>
+                    {canManage && (
+                      <td className="px-6 py-3.5">
+                        {!log.isCompleted && (
+                          <button onClick={() => handleComplete(log)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors">
+                            Complete
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </motion.tr>
                 ))}
               </tbody>

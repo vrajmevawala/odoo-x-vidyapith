@@ -15,6 +15,7 @@ import { analyticsAPI } from '../api/analytics';
 import { tripsAPI } from '../api/trips';
 import { maintenanceAPI } from '../api/maintenance';
 import { formatCurrency, formatDate } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 
 const containerV = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.07 } } };
 const itemV = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
@@ -43,6 +44,7 @@ function ensureArray(val) {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const [metrics, setMetrics] = useState(null);
   const [recentTrips, setRecentTrips] = useState([]);
   const [maintenanceAlerts, setMaintenanceAlerts] = useState([]);
@@ -142,18 +144,22 @@ export default function DashboardPage() {
     <div>
       <PageHeader title="Dashboard" subtitle="Fleet overview at a glance">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/trips?action=create')}
-            className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors"
-          >
-            <Route size={15} /> New Trip
-          </button>
-          <button
-            onClick={() => navigate('/vehicles?action=create')}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-surface-700 text-sm font-semibold rounded-xl border border-surface-200 hover:bg-surface-50 transition-colors"
-          >
-            <Truck size={15} /> New Vehicle
-          </button>
+          {hasRole('dispatcher') && (
+            <button
+              onClick={() => navigate('/trips?action=create')}
+              className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors"
+            >
+              <Route size={15} /> New Trip
+            </button>
+          )}
+          {hasRole('fleet_manager') && (
+            <button
+              onClick={() => navigate('/vehicles?action=create')}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-surface-700 text-sm font-semibold rounded-xl border border-surface-200 hover:bg-surface-50 transition-colors"
+            >
+              <Truck size={15} /> New Vehicle
+            </button>
+          )}
         </div>
       </PageHeader>
 

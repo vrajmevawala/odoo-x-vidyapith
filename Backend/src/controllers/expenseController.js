@@ -1,105 +1,84 @@
-const Expense = require('../models/Expense');
-const Vehicle = require('../models/Vehicle');
+const prisma = require('../config/prisma');
 const asyncHandler = require('../utils/asyncHandler');
 const sendResponse = require('../utils/sendResponse');
 const { NotFoundError } = require('../utils/AppError');
 const { buildQueryOptions, paginationMeta } = require('../utils/queryHelpers');
 
-/**
- * @desc    Get all expenses
- * @route   GET /api/expenses
- * @access  Private
- */
-const getExpenses = asyncHandler(async (req, res) => {
-  const { filter, sort, skip, limit, page } = buildQueryOptions(req.query, [
-    'vehicle',
-    'type',
-  ]);
-
-  const [expenses, total] = await Promise.all([
-    Expense.find(filter)
-      .populate('vehicle', 'name licensePlate')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit),
-    Expense.countDocuments(filter),
-  ]);
-
-  sendResponse(res, 200, {
-    results: expenses,
-    pagination: paginationMeta(total, page, limit),
-  });
-});
-
-/**
- * @desc    Create expense
- * @route   POST /api/expenses
- * @access  Private (fleet_manager, financial_analyst)
- */
-const createExpense = asyncHandler(async (req, res) => {
-  const { vehicle: vehicleId } = req.body;
-
-  const vehicle = await Vehicle.findById(vehicleId);
-  if (!vehicle) throw new NotFoundError('Vehicle not found');
-
-  const expense = await Expense.create(req.body);
-  const populated = await Expense.findById(expense._id).populate(
-    'vehicle',
-    'name licensePlate'
-  );
-
-  sendResponse(res, 201, populated, 'Expense recorded successfully');
-});
-
-/**
- * @desc    Get expenses for a specific vehicle
- * @route   GET /api/expenses/vehicle/:vehicleId
- * @access  Private
- */
-const getExpensesByVehicle = asyncHandler(async (req, res) => {
-  const vehicle = await Vehicle.findById(req.params.vehicleId);
-  if (!vehicle) throw new NotFoundError('Vehicle not found');
-
-  const { sort, skip, limit, page } = buildQueryOptions(req.query, []);
-
-  const filter = { vehicle: req.params.vehicleId };
-
-  const [expenses, total] = await Promise.all([
-    Expense.find(filter)
-      .populate('vehicle', 'name licensePlate')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit),
-    Expense.countDocuments(filter),
-  ]);
-
-  // Aggregate total cost
-  const aggregation = await Expense.aggregate([
-    { $match: { vehicle: vehicle._id } },
-    {
-      $group: {
-        _id: '$type',
-        totalCost: { $sum: '$cost' },
-        totalLiters: { $sum: '$liters' },
-        count: { $sum: 1 },
-      },
-    },
-  ]);
-
-  const totalOperationalCost = aggregation.reduce((sum, g) => sum + g.totalCost, 0);
-
-  sendResponse(res, 200, {
-    results: expenses,
-    pagination: paginationMeta(total, page, limit),
-    summary: {
-      totalOperationalCost,
-      byType: aggregation,
-    },
-  });
-});
-
-module.exports = {
-  getExpenses,
-  createExpense,
-  getExpensesByVehicle,
+const EXP_INCLUDE = {
+  vehicle: { select: { id: true, name: true, licensePlate: true } },
 };
+
+const getExpenses = asyncHandler(async (req, res) => {
+  const { where, orderBy, skip, take, page } = buildQueryOptions(req.query, [
+    'vehicleId', 'type',
+  ]);
+
+  const [expenses, total] = await Promise.all([
+    prisma.expense.findMany({ where, orderBy, skip, take, include: EXP_INCLUDE }),
+    prisma.expense.count({ where }),
+  ]);
+
+  sendResponse(res, 200, {
+    results: expenses,
+    pagination: paginationMeta(total, page, take),
+  });
+});
+
+const createExpense = asyncHandler(async (req, res) => {
+  const { vehicle: vehicleId, type, cost, liters, date } = req.body;
+
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+  if (!vehicle) throw new NotFoundError('Vehicle not found');
+
+  const expense = await prisma.expense.create({
+    data: {
+      vehicleId,
+      type,
+      cost: Number(cost),
+      liters: liters ? Number(liters) : 0,
+      date: date ? new Date(date) : new Date(),
+    },
+    include: EXP_INCLUDE,
+  });
+
+  sendResponse(res, 201, expense, 'Expense recorded successfully');
+});
+
+const getExpensesByVehicle = asyncHandler(async (req, res) => {
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: req.params.vehicleId } });
+  if (!vehicle) throw new NotFoundError('Vehicle not found');
+
+  const { orderBy, skip, take, page } = buildQueryOptions(req.query, []);
+
+  const where = { vehicleId: req.params.vehicleId };
+
+  const [expenses, total] = await Promise.all([
+    prisma.expense.findMany({ where, orderBy, skip, take, include: EXP_INCLUDE }),
+    prisma.expense.count({ where }),
+  ]);
+
+  // Aggregate by type
+  const aggregation = await prisma.expense.groupBy({
+    by: ['type'],
+    where: { vehicleId: req.params.vehicleId },
+    _sum: { cost: true, liters: true },
+    _count: true,
+  });
+
+  const byType = aggregation.map((g) => ({
+    _id: g.type,
+    totalCost: g._sum.cost || 0,
+    totalLiters: g._sum.liters || 0,
+    count: g._count,
+  }));
+
+  const totalOperationalCost = byType.reduce((sum, g) => sum + g.totalCost, 0);
+
+  sendResponse(res, 200, {
+    results: expenses,
+    pagination: paginationMeta(total, page, take),
+    summary: { totalOperationalCost, byType },
+  });
+});
+
+module.exports = { getExpenses, createExpense, getExpensesByVehicle };

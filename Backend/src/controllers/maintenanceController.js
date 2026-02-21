@@ -1,119 +1,94 @@
-const MaintenanceLog = require('../models/MaintenanceLog');
-const Vehicle = require('../models/Vehicle');
+const prisma = require('../config/prisma');
 const asyncHandler = require('../utils/asyncHandler');
 const sendResponse = require('../utils/sendResponse');
 const { NotFoundError, BusinessRuleError } = require('../utils/AppError');
 const { buildQueryOptions, paginationMeta } = require('../utils/queryHelpers');
 const { VEHICLE_STATUS } = require('../config/constants');
 
-/**
- * @desc    Get all maintenance logs
- * @route   GET /api/maintenance
- * @access  Private
- */
+const MAINT_INCLUDE = {
+  vehicle: { select: { id: true, name: true, licensePlate: true, status: true } },
+};
+
 const getMaintenanceLogs = asyncHandler(async (req, res) => {
-  const { filter, sort, skip, limit, page } = buildQueryOptions(req.query, [
-    'vehicle',
-    'type',
-    'isCompleted',
+  const { where, orderBy, skip, take, page } = buildQueryOptions(req.query, [
+    'vehicleId', 'type', 'isCompleted',
   ]);
 
   const [logs, total] = await Promise.all([
-    MaintenanceLog.find(filter)
-      .populate('vehicle', 'name licensePlate status')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit),
-    MaintenanceLog.countDocuments(filter),
+    prisma.maintenanceLog.findMany({ where, orderBy, skip, take, include: MAINT_INCLUDE }),
+    prisma.maintenanceLog.count({ where }),
   ]);
 
   sendResponse(res, 200, {
     results: logs,
-    pagination: paginationMeta(total, page, limit),
+    pagination: paginationMeta(total, page, take),
   });
 });
 
-/**
- * @desc    Create maintenance log (vehicle → In Shop)
- * @route   POST /api/maintenance
- * @access  Private (fleet_manager)
- */
 const createMaintenanceLog = asyncHandler(async (req, res) => {
   const { vehicle: vehicleId, type, cost, date, notes } = req.body;
 
-  const vehicle = await Vehicle.findById(vehicleId);
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
   if (!vehicle) throw new NotFoundError('Vehicle not found');
 
   if (vehicle.status === VEHICLE_STATUS.ON_TRIP) {
     throw new BusinessRuleError('Cannot schedule maintenance for a vehicle currently on a trip');
   }
-
   if (vehicle.status === VEHICLE_STATUS.RETIRED) {
     throw new BusinessRuleError('Cannot schedule maintenance for a retired vehicle');
   }
 
-  // Set vehicle to In Shop
-  vehicle.status = VEHICLE_STATUS.IN_SHOP;
-  await vehicle.save();
+  // Set vehicle to In Shop + create log in a transaction
+  const [, log] = await prisma.$transaction([
+    prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { status: VEHICLE_STATUS.IN_SHOP },
+    }),
+    prisma.maintenanceLog.create({
+      data: {
+        vehicleId,
+        type,
+        cost: Number(cost),
+        date: date ? new Date(date) : new Date(),
+        notes,
+      },
+      include: MAINT_INCLUDE,
+    }),
+  ]);
 
-  const log = await MaintenanceLog.create({
-    vehicle: vehicleId,
-    type,
-    cost,
-    date,
-    notes,
-  });
-
-  const populated = await MaintenanceLog.findById(log._id).populate(
-    'vehicle',
-    'name licensePlate status'
-  );
-
-  sendResponse(res, 201, populated, 'Maintenance log created. Vehicle set to In Shop.');
+  sendResponse(res, 201, log, 'Maintenance log created. Vehicle set to In Shop.');
 });
 
-/**
- * @desc    Complete maintenance (vehicle → Available)
- * @route   PATCH /api/maintenance/:id/complete
- * @access  Private (fleet_manager)
- */
 const completeMaintenanceLog = asyncHandler(async (req, res) => {
-  const log = await MaintenanceLog.findById(req.params.id);
+  const log = await prisma.maintenanceLog.findUnique({ where: { id: req.params.id } });
   if (!log) throw new NotFoundError('Maintenance log not found');
 
   if (log.isCompleted) {
     throw new BusinessRuleError('Maintenance log is already completed');
   }
 
-  log.isCompleted = true;
-  log.completedAt = new Date();
-  await log.save();
-
-  // Check if there are other open maintenance logs for this vehicle
-  const openLogs = await MaintenanceLog.countDocuments({
-    vehicle: log.vehicle,
-    isCompleted: false,
+  const updated = await prisma.maintenanceLog.update({
+    where: { id: req.params.id },
+    data: { isCompleted: true, completedAt: new Date() },
+    include: MAINT_INCLUDE,
   });
 
-  // Only set vehicle to Available if no other open maintenance logs exist
+  // Check if other open logs remain for this vehicle
+  const openLogs = await prisma.maintenanceLog.count({
+    where: { vehicleId: log.vehicleId, isCompleted: false },
+  });
+
   if (openLogs === 0) {
-    const vehicle = await Vehicle.findById(log.vehicle);
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: log.vehicleId } });
     if (vehicle && vehicle.status === VEHICLE_STATUS.IN_SHOP) {
-      vehicle.status = VEHICLE_STATUS.AVAILABLE;
-      await vehicle.save();
+      await prisma.vehicle.update({
+        where: { id: log.vehicleId },
+        data: { status: VEHICLE_STATUS.AVAILABLE },
+      });
     }
   }
 
-  const populated = await MaintenanceLog.findById(log._id).populate(
-    'vehicle',
-    'name licensePlate status'
-  );
-
-  sendResponse(res, 200, populated, 'Maintenance completed. Vehicle status updated.');
+  sendResponse(res, 200, updated, 'Maintenance completed. Vehicle status updated.');
 });
 
-module.exports = {
-  getMaintenanceLogs,
-  createMaintenanceLog,
-  completeMaintenanceLog,
-};
+module.exports = { getMaintenanceLogs, createMaintenanceLog, completeMaintenanceLog };

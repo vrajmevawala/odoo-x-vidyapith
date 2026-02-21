@@ -1,12 +1,9 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const prisma = require('../config/prisma');
 const { JWT_SECRET } = require('../config/constants');
 const { UnauthorizedError, ForbiddenError } = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 
-/**
- * Verify JWT and attach user to request.
- */
 const authenticateUser = asyncHandler(async (req, res, next) => {
   let token;
 
@@ -19,20 +16,25 @@ const authenticateUser = asyncHandler(async (req, res, next) => {
   }
 
   const decoded = jwt.verify(token, JWT_SECRET);
-  const user = await User.findById(decoded.id);
+
+  // Reject stale MongoDB ObjectId tokens (24 hex chars) – UUIDs are 36 chars
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!decoded.id || !uuidRegex.test(decoded.id)) {
+    throw new UnauthorizedError('Invalid token (legacy format). Please log in again.');
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
   if (!user) {
     throw new UnauthorizedError('User belonging to this token no longer exists.');
   }
 
-  req.user = user;
+  // Never expose password
+  const { password: _, ...safeUser } = user;
+  req.user = safeUser;
   next();
 });
 
-/**
- * Restrict access to specific roles.
- * @param  {...string} roles - Allowed roles
- */
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

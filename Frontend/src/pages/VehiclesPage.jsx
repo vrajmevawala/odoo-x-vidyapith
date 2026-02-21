@@ -15,6 +15,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { vehiclesAPI } from '../api/vehicles';
 import { formatCurrency, formatNumber } from '../utils/helpers';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTIONS = [
   { value: 'Available', label: 'Available' },
@@ -74,6 +75,9 @@ const vehicleTypeStyle = (type) => {
 };
 
 export default function VehiclesPage() {
+  const { hasRole } = useAuth();
+  const canManage = hasRole('fleet_manager');
+
   const [vehicles, setVehicles] = useState([]);
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
@@ -180,9 +184,11 @@ export default function VehiclesPage() {
   return (
     <div>
       <PageHeader title="Vehicles" subtitle="Manage your fleet vehicles">
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
-          <Plus size={16} /> Add Vehicle
-        </button>
+        {canManage && (
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
+            <Plus size={16} /> Add Vehicle
+          </button>
+        )}
       </PageHeader>
 
       {/* Toolbar */}
@@ -205,7 +211,7 @@ export default function VehiclesPage() {
       {loading ? (
         <SkeletonTable rows={6} cols={7} />
       ) : vehicles.length === 0 ? (
-        <EmptyState title="No vehicles found" message="Add your first vehicle to get started" actionLabel="Add Vehicle" onAction={openCreate} />
+        <EmptyState title="No vehicles found" message="Add your first vehicle to get started" actionLabel={canManage ? "Add Vehicle" : undefined} onAction={canManage ? openCreate : undefined} />
       ) : (
         <motion.div className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <div className="overflow-x-auto">
@@ -219,7 +225,7 @@ export default function VehiclesPage() {
                   <th className="px-6 py-3.5 font-medium text-right">Load (kg)</th>
                   <th className="px-6 py-3.5 font-medium text-right">Odometer</th>
                   <th className="px-6 py-3.5 font-medium text-right">Cost</th>
-                  <th className="px-6 py-3.5 font-medium w-12"></th>
+                  {canManage && <th className="px-6 py-3.5 font-medium w-12"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -247,33 +253,35 @@ export default function VehiclesPage() {
                     <td className="px-6 py-3.5 text-right text-surface-600">{formatNumber(v.maxLoadCapacity)}</td>
                     <td className="px-6 py-3.5 text-right text-surface-600">{formatNumber(v.odometer)} km</td>
                     <td className="px-6 py-3.5 text-right text-surface-600">{formatCurrency(v.acquisitionCost)}</td>
-                    <td className="px-6 py-3.5 relative">
-                      <button onClick={() => setActionMenu(actionMenu === v._id ? null : v._id)} className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 hover:text-surface-600">
-                        <MoreVertical size={16} />
-                      </button>
-                      <AnimatePresence>
-                        {actionMenu === v._id && (
-                          <motion.div
-                            className="absolute right-6 top-10 z-30 bg-white rounded-xl shadow-elevated border border-surface-100 py-1 w-40"
-                            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                          >
-                            <button onClick={() => openEdit(v)} className="flex items-center gap-2 px-4 py-2 text-sm text-surface-600 hover:bg-surface-50 w-full text-left">
-                              <Edit2 size={14} /> Edit
-                            </button>
-                            {v.status !== 'Retired' && (
-                              <button onClick={() => handleRetire(v)} className="flex items-center gap-2 px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 w-full text-left">
-                                <Power size={14} /> Retire
+                    {canManage && (
+                      <td className="px-6 py-3.5 relative">
+                        <button onClick={() => setActionMenu(actionMenu === v._id ? null : v._id)} className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 hover:text-surface-600">
+                          <MoreVertical size={16} />
+                        </button>
+                        <AnimatePresence>
+                          {actionMenu === v._id && (
+                            <motion.div
+                              className="absolute right-6 top-10 z-30 bg-white rounded-xl shadow-elevated border border-surface-100 py-1 w-40"
+                              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                            >
+                              <button onClick={() => openEdit(v)} className="flex items-center gap-2 px-4 py-2 text-sm text-surface-600 hover:bg-surface-50 w-full text-left">
+                                <Edit2 size={14} /> Edit
                               </button>
-                            )}
-                            <button onClick={() => { setDeleteTarget(v); setActionMenu(null); }} className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left">
-                              <Trash2 size={14} /> Delete
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </td>
+                              {v.status !== 'Retired' && (
+                                <button onClick={() => handleRetire(v)} className="flex items-center gap-2 px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 w-full text-left">
+                                  <Power size={14} /> Retire
+                                </button>
+                              )}
+                              <button onClick={() => { setDeleteTarget(v); setActionMenu(null); }} className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left">
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </td>
+                    )}
                   </motion.tr>
                 ))}
               </tbody>

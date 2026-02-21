@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { getStatusColor, cn } from '../../utils/helpers';
+import { getStatusColor, statusDisplayLabel, cn } from '../../utils/helpers';
 
 export default function StatusBadge({ status, size = 'sm' }) {
   const sizeClasses = {
@@ -19,7 +19,7 @@ export default function StatusBadge({ status, size = 'sm' }) {
       )}
     >
       <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 opacity-60" />
-      {status}
+      {statusDisplayLabel(status)}
     </motion.span>
   );
 }

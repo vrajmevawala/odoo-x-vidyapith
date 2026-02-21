@@ -1,1 +1,0 @@
-import{b as p}from"./index-BgoAkrL-.js";const c={getAll:t=>p.get("/trips",{params:t}),getOne:t=>p.get(`/trips/${t}`),create:t=>p.post("/trips",t),dispatch:t=>p.patch(`/trips/${t}/dispatch`),complete:t=>p.patch(`/trips/${t}/complete`),cancel:t=>p.patch(`/trips/${t}/cancel`)};export{c as t};

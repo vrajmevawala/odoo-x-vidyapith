@@ -15,6 +15,7 @@ import { expensesAPI } from '../api/expenses';
 import { vehiclesAPI } from '../api/vehicles';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const TYPE_OPTIONS = [
   { value: 'Fuel', label: 'Fuel' },
@@ -32,6 +33,9 @@ const SORT_OPTIONS = [
 const EMPTY_FORM = { vehicle: '', type: 'Fuel', cost: '', liters: '', date: '' };
 
 export default function ExpensesPage() {
+  const { hasRole } = useAuth();
+  const canRecordExpense = hasRole('fleet_manager', 'financial_analyst');
+
   const [expenses, setExpenses] = useState([]);
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
@@ -50,21 +54,33 @@ export default function ExpensesPage() {
       const params = { page, limit: 10 };
       if (typeFilter) params.type = typeFilter;
       if (sortBy) params.sort = sortBy;
-      if (expSearch) params.search = expSearch;
       const res = await expensesAPI.getAll(params);
       setExpenses(res.data.data || []);
       setPagination(res.data.pagination || {});
     } catch { /* handled */ } finally { setLoading(false); }
-  }, [page, typeFilter, sortBy, expSearch]);
+  }, [page, typeFilter, sortBy]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
   useEffect(() => { setPage(1); }, [typeFilter, sortBy, expSearch]);
 
+  // Client-side search filtering
+  const filteredExpenses = expSearch
+    ? expenses.filter((e) => {
+        const q = expSearch.toLowerCase();
+        return (
+          (e.vehicle?.name || '').toLowerCase().includes(q) ||
+          (e.vehicle?.licensePlate || '').toLowerCase().includes(q) ||
+          (e.type || '').toLowerCase().includes(q) ||
+          String(e.cost || '').includes(q)
+        );
+      })
+    : expenses;
+
   // Summary KPIs
-  const totalCost = expenses.reduce((s, e) => s + (e.cost || 0), 0);
-  const fuelCost = expenses.filter((e) => e.type === 'Fuel').reduce((s, e) => s + (e.cost || 0), 0);
-  const tollCost = expenses.filter((e) => e.type === 'Toll').reduce((s, e) => s + (e.cost || 0), 0);
-  const totalLiters = expenses.filter((e) => e.type === 'Fuel').reduce((s, e) => s + (e.liters || 0), 0);
+  const totalCost = filteredExpenses.reduce((s, e) => s + (e.cost || 0), 0);
+  const fuelCost = filteredExpenses.filter((e) => e.type === 'Fuel').reduce((s, e) => s + (e.cost || 0), 0);
+  const tollCost = filteredExpenses.filter((e) => e.type === 'Toll').reduce((s, e) => s + (e.cost || 0), 0);
+  const totalLiters = filteredExpenses.filter((e) => e.type === 'Fuel').reduce((s, e) => s + (e.liters || 0), 0);
 
   const openCreate = async () => {
     setForm(EMPTY_FORM);
@@ -107,9 +123,11 @@ export default function ExpensesPage() {
   return (
     <div>
       <PageHeader title="Expenses" subtitle="Track fleet-related costs">
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
-          <Plus size={16} /> Record Expense
-        </button>
+        {canRecordExpense && (
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-surface-900 text-white text-sm font-semibold rounded-xl hover:bg-surface-800 transition-colors">
+            <Plus size={16} /> Record Expense
+          </button>
+        )}
       </PageHeader>
 
       {/* Summary KPIs */}
@@ -135,8 +153,8 @@ export default function ExpensesPage() {
 
       {loading ? (
         <SkeletonTable rows={6} cols={5} />
-      ) : expenses.length === 0 ? (
-        <EmptyState title="No expenses found" message="Start tracking fleet expenses" actionLabel="Record Expense" onAction={openCreate} />
+      ) : filteredExpenses.length === 0 ? (
+        <EmptyState title="No expenses found" message="Start tracking fleet expenses" actionLabel={canRecordExpense ? "Record Expense" : undefined} onAction={canRecordExpense ? openCreate : undefined} />
       ) : (
         <motion.div className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <div className="overflow-x-auto">
@@ -151,7 +169,7 @@ export default function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {expenses.map((exp, i) => (
+                {filteredExpenses.map((exp, i) => (
                   <motion.tr
                     key={exp._id}
                     className="border-b border-surface-50 last:border-0 hover:bg-surface-50/50 transition-colors"
