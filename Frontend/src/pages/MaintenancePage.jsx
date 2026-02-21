@@ -213,7 +213,7 @@ export default function MaintenancePage() {
               <input type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-600 mb-1">Cost ($) *</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">Cost (₹) *</label>
               <input type="number" value={form.cost} onChange={(e) => setField('cost', e.target.value)} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
           </div>

@@ -37,10 +37,10 @@ export default function CompliancePage() {
     );
   }
 
-  const expired = report?.expiredLicenses || [];
-  const expiring = report?.expiringLicenses || [];
-  const lowSafety = report?.lowSafetyScores || [];
-  const highMileage = report?.highMileageVehicles || [];
+  const expired = report?.expiredLicenses?.drivers || [];
+  const expiring = report?.expiringLicensesNext30Days?.drivers || [];
+  const lowSafety = report?.lowSafetyScoreDrivers?.drivers || [];
+  const highMileage = report?.highMileageVehicles?.vehicles || [];
 
   const sections = [
     {
@@ -191,40 +191,47 @@ export default function CompliancePage() {
         initial="hidden"
         animate="show"
       >
-        {sections.map((section) => (
-          <motion.div
-            key={section.key}
-            variants={itemV}
-            className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden"
-          >
-            {/* Section Header */}
-            <div className="px-5 py-4 border-b border-surface-50 flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl ${section.iconBg} flex items-center justify-center`}>
-                <section.icon size={18} className={section.iconColor} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-surface-900">{section.title}</h3>
-                <p className="text-xs text-surface-400 truncate">{section.subtitle}</p>
-              </div>
-              <span className={`${section.badgeColor} text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center`}>
-                {section.badge}
-              </span>
-            </div>
-
-            {/* Section Body */}
-            <div className="p-2 max-h-[320px] overflow-y-auto">
-              {section.items.length === 0 ? (
-                <div className="text-center py-8 text-xs text-surface-300">No issues</div>
-              ) : (
-                <div className="space-y-0.5">
-                  {section.items.map((item, i) => (
-                    <div key={item._id || i}>{section.renderItem(item)}</div>
-                  ))}
+        {sections.map((section) => {
+          const items = Array.isArray(section.items) ? section.items : [];
+          return (
+            <motion.div
+              key={section.key}
+              variants={itemV}
+              className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden"
+            >
+              {/* Section Header */}
+              <div className="px-5 py-4 border-b border-surface-50 flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl ${section.iconBg} flex items-center justify-center`}>
+                  {section.icon ? (
+                    <section.icon size={18} className={section.iconColor} />
+                  ) : (
+                    <Shield size={18} className={section.iconColor} />
+                  )}
                 </div>
-              )}
-            </div>
-          </motion.div>
-        ))}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-surface-900">{section.title}</h3>
+                  <p className="text-xs text-surface-400 truncate">{section.subtitle}</p>
+                </div>
+                <span className={`${section.badgeColor} text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center`}>
+                  {section.badge}
+                </span>
+              </div>
+
+              {/* Section Body */}
+              <div className="p-2 max-h-[320px] overflow-y-auto">
+                {items.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-surface-300">No issues</div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {items.map((item, i) => (
+                      <div key={item._id || i}>{section.renderItem(item)}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
       </motion.div>
     </div>
   );

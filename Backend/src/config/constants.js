@@ -1,7 +1,7 @@
 module.exports = {
   JWT_SECRET: process.env.JWT_SECRET || 'fleetflow_dev_secret_change_in_prod',
   JWT_EXPIRE: process.env.JWT_EXPIRE || '7d',
-  PORT: process.env.PORT || 5000,
+  PORT: process.env.PORT || 5001,
   NODE_ENV: process.env.NODE_ENV || 'development',
   BCRYPT_SALT_ROUNDS: 12,
   PAGINATION: {

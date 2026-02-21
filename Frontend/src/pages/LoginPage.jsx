@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Truck, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -131,6 +131,13 @@ export default function LoginPage() {
         >
           FleetFlow · Fleet Management System
         </motion.p>
+
+        <p className="text-center text-sm text-surface-400 mt-5">
+          Don&apos;t have an account?{' '}
+          <Link to="/register" className="text-surface-900 font-medium hover:underline">
+            Register
+          </Link>
+        </p>
       </motion.div>
     </div>
   );

@@ -5,6 +5,7 @@ import MainLayout from './layouts/MainLayout';
 
 // Lazy load pages
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const VehiclesPage = lazy(() => import('./pages/VehiclesPage'));
 const DriversPage = lazy(() => import('./pages/DriversPage'));
@@ -54,6 +55,14 @@ export default function App() {
             <GuestRoute>
               <LoginPage />
             </GuestRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <RegisterPage />
+            </Suspense>
           }
         />
 

@@ -286,7 +286,7 @@ export default function TripsPage() {
               <input type="number" value={form.cargoWeight} onChange={(e) => setField('cargoWeight', e.target.value)} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-600 mb-1">Revenue ($)</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">Revenue (₹)</label>
               <input type="number" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
           </div>

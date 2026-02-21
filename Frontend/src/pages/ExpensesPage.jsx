@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Plus, DollarSign, Fuel, Receipt, Truck,
+  Plus, Fuel, Receipt, Truck,
+  IndianRupee,
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { SelectFilter } from '../components/ui/Filters';
@@ -84,7 +85,7 @@ export default function ExpensesPage() {
   const typeIcon = (type) => {
     if (type === 'Fuel') return <Fuel size={14} className="text-brand-500" />;
     if (type === 'Toll') return <Receipt size={14} className="text-surface-500" />;
-    return <DollarSign size={14} className="text-surface-400" />;
+    return <IndianRupee size={14} className="text-surface-400" />;
   };
 
   const typeStyle = (type) => {
@@ -103,9 +104,9 @@ export default function ExpensesPage() {
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard label="Page Total" value={totalCost} prefix="$" icon={DollarSign} color="text-surface-700" bg="bg-surface-100" />
-        <KPICard label="Fuel Cost" value={fuelCost} prefix="$" icon={Fuel} color="text-brand-600" bg="bg-brand-50" />
-        <KPICard label="Toll Cost" value={tollCost} prefix="$" icon={Receipt} color="text-surface-600" bg="bg-surface-100" />
+        <KPICard label="Page Total" value={totalCost} prefix="₹" icon={IndianRupee} color="text-surface-700" bg="bg-surface-100" />
+        <KPICard label="Fuel Cost" value={fuelCost} prefix="₹" icon={Fuel} color="text-brand-600" bg="bg-brand-50" />
+        <KPICard label="Toll Cost" value={tollCost} prefix="₹" icon={Receipt} color="text-surface-600" bg="bg-surface-100" />
         <KPICard label="Fuel (Liters)" value={totalLiters} suffix="L" icon={Fuel} color="text-emerald-600" bg="bg-emerald-50" />
       </div>
 
@@ -191,7 +192,7 @@ export default function ExpensesPage() {
               <input type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-600 mb-1">Cost ($) *</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">Cost (₹) *</label>
               <input type="number" value={form.cost} onChange={(e) => setField('cost', e.target.value)} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
           </div>

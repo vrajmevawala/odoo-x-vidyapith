@@ -14,6 +14,11 @@ const vehicleSchema = new mongoose.Schema(
       trim: true,
       maxlength: [120, 'Model cannot exceed 120 characters'],
     },
+    vehicleType: {
+      type: String,
+      enum: ['Truck', 'Van', 'Trailer', 'Bus', 'Pickup', 'Tanker', 'Flatbed', 'Refrigerated'],
+      default: 'Truck',
+    },
     licensePlate: {
       type: String,
       required: [true, 'License plate is required'],

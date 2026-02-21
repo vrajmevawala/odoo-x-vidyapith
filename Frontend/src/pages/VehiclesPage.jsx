@@ -25,8 +25,45 @@ const STATUS_OPTIONS = [
   { value: 'Retired', label: 'Retired' },
 ];
 
+const VEHICLE_TYPE_OPTIONS = [
+  { value: '', label: 'All Types' },
+  { value: 'Truck', label: 'Truck' },
+  { value: 'Van', label: 'Van' },
+  { value: 'Trailer', label: 'Trailer' },
+  { value: 'Bus', label: 'Bus' },
+  { value: 'Pickup', label: 'Pickup' },
+  { value: 'Tanker', label: 'Tanker' },
+  { value: 'Flatbed', label: 'Flatbed' },
+  { value: 'Refrigerated', label: 'Refrigerated' },
+];
+
+const FORM_VEHICLE_TYPES = [
+  { value: 'Truck', label: 'Truck' },
+  { value: 'Van', label: 'Van' },
+  { value: 'Trailer', label: 'Trailer' },
+  { value: 'Bus', label: 'Bus' },
+  { value: 'Pickup', label: 'Pickup' },
+  { value: 'Tanker', label: 'Tanker' },
+  { value: 'Flatbed', label: 'Flatbed' },
+  { value: 'Refrigerated', label: 'Refrigerated' },
+];
+
 const EMPTY_FORM = {
-  name: '', model: '', licensePlate: '', maxLoadCapacity: '', odometer: '', acquisitionCost: '',
+  name: '', model: '', licensePlate: '', vehicleType: 'Truck', maxLoadCapacity: '', odometer: '', acquisitionCost: '',
+};
+
+const vehicleTypeStyle = (type) => {
+  switch (type) {
+    case 'Truck': return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'Van': return 'bg-purple-50 text-purple-700 border-purple-200';
+    case 'Trailer': return 'bg-surface-100 text-surface-600 border-surface-200';
+    case 'Bus': return 'bg-brand-50 text-brand-700 border-brand-200';
+    case 'Pickup': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'Tanker': return 'bg-orange-50 text-orange-700 border-orange-200';
+    case 'Flatbed': return 'bg-teal-50 text-teal-700 border-teal-200';
+    case 'Refrigerated': return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+    default: return 'bg-surface-50 text-surface-500 border-surface-200';
+  }
 };
 
 export default function VehiclesPage() {
@@ -36,6 +73,7 @@ export default function VehiclesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -49,26 +87,27 @@ export default function VehiclesPage() {
       const params = { page, limit: 10 };
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (typeFilter) params.vehicleType = typeFilter;
       const res = await vehiclesAPI.getAll(params);
       setVehicles(res.data.data || []);
       setPagination(res.data.pagination || {});
-    } catch {
-      // handled
+    } catch (err) {
+      console.error('Vehicles fetch error:', err);
+      toast.error('Failed to load vehicles');
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, typeFilter]);
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
-
-  // reset page on filter change
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
+  useEffect(() => { setPage(1); }, [search, statusFilter, typeFilter]);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setModalOpen(true); };
   const openEdit = (v) => {
     setEditing(v);
     setForm({
       name: v.name, model: v.model, licensePlate: v.licensePlate,
+      vehicleType: v.vehicleType || 'Truck',
       maxLoadCapacity: v.maxLoadCapacity ?? '', odometer: v.odometer ?? '',
       acquisitionCost: v.acquisitionCost ?? '',
     });
@@ -95,8 +134,9 @@ export default function VehiclesPage() {
       }
       setModalOpen(false);
       fetchVehicles();
-    } catch {
-      // handled
+    } catch (err) {
+      console.error('Vehicle save error:', err);
+      toast.error(editing ? 'Failed to update vehicle' : 'Failed to create vehicle');
     } finally {
       setSubmitting(false);
     }
@@ -108,8 +148,9 @@ export default function VehiclesPage() {
       toast.success('Vehicle deleted');
       setDeleteTarget(null);
       fetchVehicles();
-    } catch {
-      // handled
+    } catch (err) {
+      console.error('Delete error:', err);
+      toast.error('Failed to delete vehicle');
     }
   };
 
@@ -119,8 +160,9 @@ export default function VehiclesPage() {
       toast.success('Vehicle retired');
       setActionMenu(null);
       fetchVehicles();
-    } catch {
-      // handled
+    } catch (err) {
+      console.error('Retire error:', err);
+      toast.error('Failed to retire vehicle');
     }
   };
 
@@ -138,11 +180,12 @@ export default function VehiclesPage() {
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <SearchInput value={search} onChange={setSearch} placeholder="Search vehicles..." />
         <SelectFilter value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+        <SelectFilter value={typeFilter} onChange={setTypeFilter} options={VEHICLE_TYPE_OPTIONS} />
       </div>
 
       {/* Table */}
       {loading ? (
-        <SkeletonTable rows={6} cols={6} />
+        <SkeletonTable rows={6} cols={7} />
       ) : vehicles.length === 0 ? (
         <EmptyState title="No vehicles found" message="Add your first vehicle to get started" actionLabel="Add Vehicle" onAction={openCreate} />
       ) : (
@@ -153,6 +196,7 @@ export default function VehiclesPage() {
                 <tr className="text-left text-surface-400 border-b border-surface-100">
                   <th className="px-6 py-3.5 font-medium">Vehicle</th>
                   <th className="px-6 py-3.5 font-medium">Plate</th>
+                  <th className="px-6 py-3.5 font-medium">Type</th>
                   <th className="px-6 py-3.5 font-medium">Status</th>
                   <th className="px-6 py-3.5 font-medium text-right">Load (kg)</th>
                   <th className="px-6 py-3.5 font-medium text-right">Odometer</th>
@@ -176,6 +220,11 @@ export default function VehiclesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-3.5 font-mono text-xs text-surface-600">{v.licensePlate}</td>
+                    <td className="px-6 py-3.5">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${vehicleTypeStyle(v.vehicleType)}`}>
+                        {v.vehicleType || '—'}
+                      </span>
+                    </td>
                     <td className="px-6 py-3.5"><StatusBadge status={v.status} size="sm" /></td>
                     <td className="px-6 py-3.5 text-right text-surface-600">{formatNumber(v.maxLoadCapacity)}</td>
                     <td className="px-6 py-3.5 text-right text-surface-600">{formatNumber(v.odometer)} km</td>
@@ -233,22 +282,32 @@ export default function VehiclesPage() {
               <input value={form.model} onChange={(e) => setField('model', e.target.value)} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-600 mb-1">License Plate *</label>
-            <input value={form.licensePlate} onChange={(e) => setField('licensePlate', e.target.value.toUpperCase())} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300 font-mono" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-600 mb-1">License Plate *</label>
+              <input value={form.licensePlate} onChange={(e) => setField('licensePlate', e.target.value.toUpperCase())} required className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300 font-mono" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-600 mb-1">Vehicle Type *</label>
+              <select value={form.vehicleType} onChange={(e) => setField('vehicleType', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300">
+                {FORM_VEHICLE_TYPES.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-surface-600 mb-1">Max Load (kg)</label>
-              <input type="number" value={form.maxLoadCapacity} onChange={(e) => setField('maxLoadCapacity', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
+              <input type="number" min="0" value={form.maxLoadCapacity} onChange={(e) => setField('maxLoadCapacity', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
             <div>
               <label className="block text-sm font-medium text-surface-600 mb-1">Odometer</label>
-              <input type="number" value={form.odometer} onChange={(e) => setField('odometer', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
+              <input type="number" min="0" value={form.odometer} onChange={(e) => setField('odometer', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-600 mb-1">Acq. Cost ($)</label>
-              <input type="number" value={form.acquisitionCost} onChange={(e) => setField('acquisitionCost', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
+              <label className="block text-sm font-medium text-surface-600 mb-1">Acq. Cost (₹)</label>
+              <input type="number" min="0" step="0.01" value={form.acquisitionCost} onChange={(e) => setField('acquisitionCost', e.target.value)} className="w-full px-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-surface-900/10 focus:border-surface-300" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -269,7 +328,6 @@ export default function VehiclesPage() {
         message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
       />
 
-      {/* Click-away for action menu */}
       {actionMenu && <div className="fixed inset-0 z-20" onClick={() => setActionMenu(null)} />}
     </div>
   );

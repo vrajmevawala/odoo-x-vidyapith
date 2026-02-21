@@ -13,6 +13,7 @@ const { VEHICLE_STATUS } = require('../config/constants');
 const getVehicles = asyncHandler(async (req, res) => {
   const { filter, sort, skip, limit, page } = buildQueryOptions(req.query, [
     'status',
+    'vehicleType',
     'name',
     'model',
     'licensePlate',

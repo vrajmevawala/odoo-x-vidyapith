@@ -48,6 +48,11 @@ const driverSchema = new mongoose.Schema(
       },
       default: DRIVER_STATUS.AVAILABLE,
     },
+    performance: {
+      type: String,
+      enum: ['Excellent', 'Good', 'Average', 'Below Average', 'Poor'],
+      default: 'Good',
+    },
   },
   { timestamps: true }
 );

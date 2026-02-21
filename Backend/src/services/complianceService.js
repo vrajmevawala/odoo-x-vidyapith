@@ -59,7 +59,7 @@ const getComplianceReport = async () => {
     getExpiredLicenseDrivers(),
     getExpiringLicenseDrivers(30),
     getVehiclesNeedingAttention(100000),
-    getLowSafetyScoreDrivers(50),
+    getLowSafetyScoreDrivers(70),
   ]);
 
   return {
@@ -94,6 +94,7 @@ const getComplianceReport = async () => {
       drivers: lowSafetyDrivers.map((d) => ({
         _id: d._id,
         name: d.name,
+        email: d.email,
         safetyScore: d.safetyScore,
       })),
     },

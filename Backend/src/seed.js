@@ -55,28 +55,30 @@ const users = [
 
 // ───────────────────── VEHICLES ─────────────────────
 const vehicles = [
-  { name: 'Volvo FH16', model: 'FH16 2024', licensePlate: 'FL-1001', maxLoadCapacity: 25000, odometer: 45230, acquisitionCost: 120000, status: 'Available' },
-  { name: 'Scania R500', model: 'R500 Next Gen', licensePlate: 'FL-1002', maxLoadCapacity: 22000, odometer: 78500, acquisitionCost: 115000, status: 'Available' },
-  { name: 'Mercedes Actros', model: 'Actros 2653', licensePlate: 'FL-1003', maxLoadCapacity: 28000, odometer: 32100, acquisitionCost: 135000, status: 'Available' },
-  { name: 'MAN TGX', model: 'TGX 18.510', licensePlate: 'FL-1004', maxLoadCapacity: 20000, odometer: 91200, acquisitionCost: 105000, status: 'On Trip' },
-  { name: 'DAF XF', model: 'XF 480', licensePlate: 'FL-1005', maxLoadCapacity: 24000, odometer: 55400, acquisitionCost: 110000, status: 'On Trip' },
-  { name: 'Iveco S-Way', model: 'S-Way AS440', licensePlate: 'FL-1006', maxLoadCapacity: 19000, odometer: 120800, acquisitionCost: 98000, status: 'In Shop' },
-  { name: 'Kenworth T680', model: 'T680 Next Gen', licensePlate: 'FL-1007', maxLoadCapacity: 30000, odometer: 67300, acquisitionCost: 145000, status: 'Available' },
-  { name: 'Peterbilt 579', model: '579 UltraLoft', licensePlate: 'FL-1008', maxLoadCapacity: 27000, odometer: 152000, acquisitionCost: 140000, status: 'Out of Service' },
-  { name: 'Freightliner Cascadia', model: 'Cascadia 2025', licensePlate: 'FL-1009', maxLoadCapacity: 26000, odometer: 8900, acquisitionCost: 130000, status: 'Available' },
-  { name: 'International LT', model: 'LT Series', licensePlate: 'FL-1010', maxLoadCapacity: 23000, odometer: 185000, acquisitionCost: 95000, status: 'Retired' },
+  { name: 'Volvo FH16', model: 'FH16 2024', licensePlate: 'FL-1001', vehicleType: 'Truck', maxLoadCapacity: 25000, odometer: 45230, acquisitionCost: 120000, status: 'Available' },
+  { name: 'Scania R500', model: 'R500 Next Gen', licensePlate: 'FL-1002', vehicleType: 'Truck', maxLoadCapacity: 22000, odometer: 78500, acquisitionCost: 115000, status: 'Available' },
+  { name: 'Mercedes Actros', model: 'Actros 2653', licensePlate: 'FL-1003', vehicleType: 'Refrigerated', maxLoadCapacity: 28000, odometer: 32100, acquisitionCost: 135000, status: 'Available' },
+  { name: 'MAN TGX', model: 'TGX 18.510', licensePlate: 'FL-1004', vehicleType: 'Flatbed', maxLoadCapacity: 20000, odometer: 91200, acquisitionCost: 105000, status: 'On Trip' },
+  { name: 'DAF XF', model: 'XF 480', licensePlate: 'FL-1005', vehicleType: 'Truck', maxLoadCapacity: 24000, odometer: 55400, acquisitionCost: 110000, status: 'On Trip' },
+  { name: 'Iveco S-Way', model: 'S-Way AS440', licensePlate: 'FL-1006', vehicleType: 'Tanker', maxLoadCapacity: 19000, odometer: 120800, acquisitionCost: 98000, status: 'In Shop' },
+  { name: 'Kenworth T680', model: 'T680 Next Gen', licensePlate: 'FL-1007', vehicleType: 'Trailer', maxLoadCapacity: 30000, odometer: 67300, acquisitionCost: 145000, status: 'Available' },
+  { name: 'Peterbilt 579', model: '579 UltraLoft', licensePlate: 'FL-1008', vehicleType: 'Truck', maxLoadCapacity: 27000, odometer: 152000, acquisitionCost: 140000, status: 'Out of Service' },
+  { name: 'Freightliner Cascadia', model: 'Cascadia 2025', licensePlate: 'FL-1009', vehicleType: 'Van', maxLoadCapacity: 26000, odometer: 8900, acquisitionCost: 130000, status: 'Available' },
+  { name: 'International LT', model: 'LT Series', licensePlate: 'FL-1010', vehicleType: 'Pickup', maxLoadCapacity: 23000, odometer: 185000, acquisitionCost: 95000, status: 'Retired' },
 ];
 
 // ───────────────────── DRIVERS ─────────────────────
+// ───────────────────── DRIVERS ─────────────────────
 const drivers = [
-  { name: 'Mike Johnson', email: 'mike@fleetflow.com', phone: '+1-555-0101', licenseNumber: 'DL-2024-1001', licenseExpiryDate: '2027-08-15', licenseCategory: 'Class A CDL', safetyScore: 95, status: 'Available' },
-  { name: 'Carlos Rivera', email: 'carlos@fleetflow.com', phone: '+1-555-0102', licenseNumber: 'DL-2024-1002', licenseExpiryDate: '2028-03-22', licenseCategory: 'Class A CDL', safetyScore: 88, status: 'Available' },
-  { name: 'James O\'Brien', email: 'james@fleetflow.com', phone: '+1-555-0103', licenseNumber: 'DL-2024-1003', licenseExpiryDate: '2027-11-30', licenseCategory: 'Class B CDL', safetyScore: 72, status: 'On Trip' },
-  { name: 'David Chen', email: 'david@fleetflow.com', phone: '+1-555-0104', licenseNumber: 'DL-2024-1004', licenseExpiryDate: '2026-12-01', licenseCategory: 'Class A CDL', safetyScore: 91, status: 'On Trip' },
-  { name: 'Ahmed Hassan', email: 'ahmed@fleetflow.com', phone: '+1-555-0105', licenseNumber: 'DL-2024-1005', licenseExpiryDate: '2026-05-10', licenseCategory: 'Class A CDL', safetyScore: 65, status: 'Available' },
-  { name: 'Bob Wilson', email: 'bob@fleetflow.com', phone: '+1-555-0106', licenseNumber: 'DL-2024-1006', licenseExpiryDate: '2025-11-20', licenseCategory: 'Class B CDL', safetyScore: 38, status: 'Suspended' },
-  { name: 'Elena Volkov', email: 'elena@fleetflow.com', phone: '+1-555-0107', licenseNumber: 'DL-2024-1007', licenseExpiryDate: '2028-07-05', licenseCategory: 'Class A CDL', safetyScore: 97, status: 'Off Duty' },
-  { name: 'Ryan Patel', email: 'ryan@fleetflow.com', phone: '+1-555-0108', licenseNumber: 'DL-2024-1008', licenseExpiryDate: '2026-03-15', licenseCategory: 'Class A CDL', safetyScore: 82, status: 'Available' },
+  { name: 'Mike Johnson', email: 'mike@fleetflow.com', phone: '+1-555-0101', licenseNumber: 'DL-2024-1001', licenseExpiryDate: '2027-08-15', licenseCategory: 'Class A CDL', safetyScore: 95, performance: 'Excellent', status: 'Available' },
+  { name: 'Carlos Rivera', email: 'carlos@fleetflow.com', phone: '+1-555-0102', licenseNumber: 'DL-2024-1002', licenseExpiryDate: '2028-03-22', licenseCategory: 'Class A CDL', safetyScore: 88, performance: 'Good', status: 'Available' },
+  { name: 'James O\'Brien', email: 'james@fleetflow.com', phone: '+1-555-0103', licenseNumber: 'DL-2024-1003', licenseExpiryDate: '2027-11-30', licenseCategory: 'Class B CDL', safetyScore: 72, performance: 'Average', status: 'On Trip' },
+  { name: 'David Chen', email: 'david@fleetflow.com', phone: '+1-555-0104', licenseNumber: 'DL-2024-1004', licenseExpiryDate: '2026-12-01', licenseCategory: 'Class A CDL', safetyScore: 91, performance: 'Excellent', status: 'On Trip' },
+  { name: 'Ahmed Hassan', email: 'ahmed@fleetflow.com', phone: '+1-555-0105', licenseNumber: 'DL-2024-1005', licenseExpiryDate: '2026-05-10', licenseCategory: 'Class A CDL', safetyScore: 65, performance: 'Below Average', status: 'Available' },
+  { name: 'Bob Wilson', email: 'bob@fleetflow.com', phone: '+1-555-0106', licenseNumber: 'DL-2024-1006', licenseExpiryDate: '2025-11-20', licenseCategory: 'Class B CDL', safetyScore: 38, performance: 'Poor', status: 'Suspended' },
+  { name: 'Elena Volkov', email: 'elena@fleetflow.com', phone: '+1-555-0107', licenseNumber: 'DL-2024-1007', licenseExpiryDate: '2028-07-05', licenseCategory: 'Class A CDL', safetyScore: 97, performance: 'Excellent', status: 'Off Duty' },
+  { name: 'Ryan Patel', email: 'ryan@fleetflow.com', phone: '+1-555-0108', licenseNumber: 'DL-2024-1008', licenseExpiryDate: '2026-03-15', licenseCategory: 'Class A CDL', safetyScore: 82, performance: 'Good', status: 'Available' },
+  { name: 'Marcus Thompson', email: 'marcus@fleetflow.com', phone: '+1-555-0109', licenseNumber: 'DL-2024-1009', licenseExpiryDate: '2024-12-15', licenseCategory: 'Class A CDL', safetyScore: 90, status: 'Available' },
 ];
 
 // ───────────────────── SEED FUNCTION ─────────────────────

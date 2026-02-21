@@ -47,7 +47,10 @@ const getDriver = asyncHandler(async (req, res) => {
  * @access  Private (fleet_manager)
  */
 const createDriver = asyncHandler(async (req, res) => {
-  const driver = await Driver.create(req.body);
+  const driver = await Driver.create({
+    name, email, phone, licenseNumber, licenseExpiryDate, licenseCategory,
+    performance, // <-- add this
+  });
   sendResponse(res, 201, driver, 'Driver created successfully');
 });
 
@@ -64,7 +67,10 @@ const updateDriver = asyncHandler(async (req, res) => {
     throw new BusinessRuleError('Cannot update a driver currently on a trip');
   }
 
-  const updatedDriver = await Driver.findByIdAndUpdate(req.params.id, req.body, {
+  const updatedDriver = await Driver.findByIdAndUpdate(req.params.id, {
+    name, email, phone, licenseNumber, licenseExpiryDate, licenseCategory,
+    performance, // <-- add this
+  }, {
     new: true,
     runValidators: true,
   });
